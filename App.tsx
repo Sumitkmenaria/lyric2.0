@@ -295,32 +295,32 @@ const App: React.FC = () => {
         )}
         
         {!appState.isLoading && appState.view === View.PREVIEW && appState.audioUrl && appState.imageUrl && (
-          <>
+          <div className="relative w-full">
             {appState.isExporting && (
               <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
                 <Loader message={appState.loaderMessage} progress={appState.exportProgress} />
               </div>
             )}
-          <VideoPreview
-            {...appState}
-            lyrics={appState.structuredLyrics}
-            onBack={handleBackToInput}
-            onExport={handleExport}
-            onAdjust={handleAdjustLyrics}
-          />
-          </>
+            <VideoPreview
+              {...appState}
+              lyrics={appState.structuredLyrics}
+              onBack={handleBackToInput}
+              onExport={handleExport}
+              onAdjust={handleAdjustLyrics}
+              onSettingsChange={handleSettingsChange}
+            />
+          </div>
         )}
 
         {!appState.isLoading && !appState.isExporting && appState.view === View.TIMELINE_EDITOR && appState.audioUrl && (
-            <TimelineEditor
-                lyrics={appState.structuredLyrics}
-                audioUrl={appState.audioUrl}
-                duration={appState.audioDuration}
-                onSave={handleSaveTimeline}
-                onCancel={handleCancelTimeline}
-              onSettingsChange={handleSettingsChange}
-            />
-        )}
+          <TimelineEditor
+            lyrics={appState.structuredLyrics}
+            audioUrl={appState.audioUrl}
+            duration={appState.audioDuration}
+            onSave={handleSaveTimeline}
+            onCancel={handleCancelTimeline}
+            onSettingsChange={handleSettingsChange}
+          />
       </main>
     </div>
   );
