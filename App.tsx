@@ -58,7 +58,7 @@ const App: React.FC = () => {
     // Save state to localStorage on change, but only serializable data
     if (!isStateRestored) return;
     const debouncedSave = setTimeout(() => {
-        const { audioFile, imageFile, audioUrl, imageUrl, view, isLoading, isExporting, error, ...stateToSave } = appState;
+        const { audioFile, imageFile, audioUrl, imageUrl, isLoading, isExporting, error, loaderMessage, ...stateToSave } = appState;
         localStorage.setItem('lyricVideoDraft', JSON.stringify(stateToSave));
     }, 500);
 
@@ -144,13 +144,13 @@ const App: React.FC = () => {
   const handleExport = async () => {
     if (!appState.audioUrl || !appState.imageUrl) return;
     
-    setAppState(prev => ({ ...prev, isExporting: true, error: null, loaderMessage: "Preparing video export..." }));
+    setAppState(prev => ({ ...prev, isExporting: true, error: null, exportProgress: 0, loaderMessage: "Preparing video export..." }));
     
     const onProgress = (progress: number) => {
         setAppState(prev => ({
             ...prev,
             exportProgress: progress,
-            loaderMessage: `Exporting video... ${Math.round(progress * 100)}%`
+            loaderMessage: progress < 1 ? `Exporting video... ${Math.round(progress * 100)}%` : "Video exported successfully!"
         }));
     };
 
@@ -166,11 +166,15 @@ const App: React.FC = () => {
         imageColors: appState.imageColors,
         hindiFont: appState.hindiFont,
       }, onProgress);
+      
+      // Show success message briefly
+      setTimeout(() => {
+        setAppState(prev => ({ ...prev, isExporting: false, loaderMessage: "", exportProgress: 0 }));
+      }, 2000);
     } catch (error) {
        console.error('Failed to export video:', error);
        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
        setAppState(prev => ({ ...prev, error: `Failed to export video. ${errorMessage}` }));
-    } finally {
        setAppState(prev => ({ ...prev, isExporting: false, loaderMessage: "", exportProgress: 0 }));
     }
   };

@@ -127,6 +127,11 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
     const { audioUrl, imageUrl, lyrics, songName, creatorName, aspectRatio, visualizationStyle, imageColors, hindiFont } = options;
     onProgress(0);
     
+    // Check for required browser APIs
+    if (!window.MediaRecorder) {
+        throw new Error('Video recording is not supported in this browser. Please use Chrome, Firefox, or Edge.');
+    }
+    
     const canvas = document.createElement('canvas');
     const FONT_SIZE_MAP = { '16:9': 48, '9:16': 42 };
     const FONT_SIZE = FONT_SIZE_MAP[aspectRatio];
@@ -136,51 +141,93 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
     canvas.width = VIDEO_WIDTH;
     canvas.height = VIDEO_HEIGHT;
     const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error("Could not create canvas context");
+    if (!ctx) throw new Error("Could not create canvas context for video rendering");
 
-    const audioContext = new AudioContext();
+    let audioContext: AudioContext;
+    try {
+        audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    } catch (e) {
+        throw new Error('Audio processing is not supported in this browser');
+    }
+    
     const [image, audio, vinylImage] = await Promise.all([
         loadAsset(Object.assign(new Image(), { src: imageUrl, crossOrigin: 'anonymous' })),
         loadAsset(Object.assign(new Audio(), { src: audioUrl, crossOrigin: 'anonymous' })),
         loadAsset(Object.assign(new Image(), { src: 'https://i.imgur.com/3Ea5iH7.png', crossOrigin: 'anonymous' })),
-    ]);
+    ]).catch(e => {
+        throw new Error(`Failed to load media assets: ${e.message}`);
+    });
     
     const fontClassName = getFontClass(hindiFont);
     const fontString = FONT_MAP[fontClassName].replace(/\d+px/, `${FONT_SIZE}px`);
     const bigFontString = fontString.replace(/\d+px/, `${FONT_SIZE * 2}px`);
-    await Promise.all([
+    
+    try {
+        await Promise.all([
         document.fonts.load(fontString),
         document.fonts.load(bigFontString),
         document.fonts.load('700 24px Inter'),
         document.fonts.load('400 20px Inter'),
         document.fonts.load('900 144px Inter'),
-    ]);
+        ]);
+    } catch (e) {
+        console.warn('Some fonts failed to load, using fallbacks');
+    }
 
-
-    const destination = audioContext.createMediaStreamDestination();
-    const source = audioContext.createMediaElementSource(audio);
-
-    const analyser = audioContext.createAnalyser();
-    analyser.fftSize = 256;
+    let destination: MediaStreamAudioDestinationNode;
+    let source: MediaElementAudioSourceNode;
+    let analyser: AnalyserNode;
     
-    source.connect(analyser);
-    source.connect(destination);
+    try {
+        destination = audioContext.createMediaStreamDestination();
+        source = audioContext.createMediaElementSource(audio);
+        analyser = audioContext.createAnalyser();
+        analyser.fftSize = 256;
+        
+        source.connect(analyser);
+        source.connect(destination);
+    } catch (e) {
+        throw new Error(`Failed to set up audio processing: ${e.message}`);
+    }
 
-    const videoStream = canvas.captureStream(30);
+    let videoStream: MediaStream;
+    try {
+        videoStream = canvas.captureStream(30);
+    } catch (e) {
+        throw new Error('Video capture is not supported in this browser');
+    }
+
     const combinedStream = new MediaStream([
         ...videoStream.getVideoTracks(),
         ...destination.stream.getAudioTracks()
     ]);
 
-    const recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' });
+    // Try different MIME types for better compatibility
+    let mimeType = 'video/webm;codecs=vp9,opus';
+    if (!MediaRecorder.isTypeSupported(mimeType)) {
+        mimeType = 'video/webm;codecs=vp8,opus';
+        if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = 'video/webm';
+            if (!MediaRecorder.isTypeSupported(mimeType)) {
+                throw new Error('No supported video format found for recording');
+            }
+        }
+    }
+    
+    const recorder = new MediaRecorder(combinedStream, { mimeType });
     const chunks: Blob[] = [];
+    
     recorder.ondataavailable = (e) => e.data.size > 0 && chunks.push(e.data);
+    recorder.onerror = (e) => {
+        throw new Error(`Recording failed: ${e}`);
+    };
     recorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+        const blob = new Blob(chunks, { type: mimeType });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${songName.replace(/ /g, '_')}_lyric_video.webm`;
+        const fileExtension = mimeType.includes('webm') ? 'webm' : 'mp4';
+        a.download = `${songName.replace(/[^a-zA-Z0-9]/g, '_')}_lyric_video.${fileExtension}`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -192,6 +239,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
     let lastProgress = -1;
 
     const renderFrame = () => {
+        if (audio.ended) return;
+        
         const progress = audio.currentTime / audio.duration;
         if(Math.floor(progress * 100) !== Math.floor(lastProgress * 100)) {
             onProgress(progress);
@@ -271,6 +320,7 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
                  const vizHeight = artSize * 0.5;
                  drawLineVisualizer(ctx, dataArray, imageColors, artX - vizWidth - 40, artY + vizHeight, vizWidth, vizHeight);
                  
+                 // Draw mirrored visualizer
                  ctx.save();
                  ctx.translate(VIDEO_WIDTH, 0);
                  ctx.scale(-1, 1);
@@ -324,13 +374,37 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
         animationFrameId = requestAnimationFrame(renderFrame);
     };
 
+    const cleanup = () => {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        if (audioContext && audioContext.state !== 'closed') {
+            audioContext.close().catch(console.error);
+        }
+        // Clean up streams
+        combinedStream.getTracks().forEach(track => track.stop());
+        videoStream.getTracks().forEach(track => track.stop());
+    };
+
     audio.onended = () => {
-        recorder.stop();
-        cancelAnimationFrame(animationFrameId);
-        audioContext.close();
+        try {
+            recorder.stop();
+        } catch (e) {
+            console.error('Error stopping recorder:', e);
+        }
+        cleanup();
     };
     
-    await audio.play();
-    recorder.start();
-    renderFrame();
+    // Handle errors during playback
+    audio.onerror = () => {
+        cleanup();
+        throw new Error('Audio playback failed during export');
+    };
+    
+    try {
+        await audio.play();
+        recorder.start();
+        renderFrame();
+    } catch (e) {
+        cleanup();
+        throw new Error(`Failed to start video export: ${e.message}`);
+    }
 };

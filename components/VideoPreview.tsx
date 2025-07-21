@@ -119,7 +119,13 @@ const VideoPreview: React.FC<VideoPreviewProps> = (props) => {
     }
   }
 
-  const aspectRatioClass = useMemo(() => aspectRatio === '16:9' ? 'aspect-video' : 'aspect-[9/16]', [aspectRatio]);
+  const aspectRatioClass = useMemo(() => {
+    if (aspectRatio === '16:9') {
+      return 'aspect-video max-w-6xl';
+    } else {
+      return 'aspect-[9/16] max-w-md';
+    }
+  }, [aspectRatio]);
   const fontClass = useMemo(() => fontMap[hindiFont] || 'font-mukta', [hindiFont]);
   const currentLyric = currentLyricIndex > -1 ? lyrics[currentLyricIndex]?.text : '';
 
@@ -141,24 +147,25 @@ const VideoPreview: React.FC<VideoPreviewProps> = (props) => {
                  <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} colors={imageColors} displayStyle="line" />
               </div>
             </div>
-            <div className="mt-6 text-center">
-              <h2 className="text-4xl font-bold">{songName}</h2>
-              <p className="text-xl text-white/70">by {creatorName}</p>
+            <div className="mt-8 text-center space-y-4">
+              <h2 className="text-4xl lg:text-5xl font-bold">{songName}</h2>
+              <p className="text-xl lg:text-2xl text-white/70">by {creatorName}</p>
+              <LyricDisplayer lyric={currentLyric} fontClass={fontClass} key={currentLyricIndex} />
             </div>
           </div>
         );
       case 'waves':
         return (
           <div className="w-full h-full flex flex-col justify-between items-center z-20 p-8">
-            <div className="text-center">
-              <h2 className="text-5xl font-bold">{songName}</h2>
-              <p className="text-2xl text-white/70">by {creatorName}</p>
+            <div className="text-center space-y-2">
+              <h2 className="text-4xl lg:text-6xl font-bold">{songName}</h2>
+              <p className="text-xl lg:text-3xl text-white/70">by {creatorName}</p>
             </div>
             <div className="w-full flex items-center justify-center gap-8">
               <div className="w-1/4 h-24">
                 <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} colors={imageColors} displayStyle="line" />
               </div>
-              <img src={imageUrl} alt="Album Art" className="w-52 h-52 object-cover rounded-2xl shadow-2xl" />
+              <img src={imageUrl} alt="Album Art" className="w-48 h-48 lg:w-64 lg:h-64 object-cover rounded-2xl shadow-2xl" />
               <div className="w-1/4 h-24 scale-x-[-1]">
                 <AudioVisualizer audioRef={audioRef} isPlaying={isPlaying} colors={imageColors} displayStyle="line" />
               </div>
@@ -170,10 +177,10 @@ const VideoPreview: React.FC<VideoPreviewProps> = (props) => {
          return (
           <div className="w-full h-full flex flex-col justify-between items-center z-20 p-8 text-center">
               <div>
-                <p className="text-2xl lg:text-3xl text-white/80 font-semibold tracking-wider">by {creatorName}</p>
+                <p className="text-xl lg:text-3xl text-white/80 font-semibold tracking-wider">by {creatorName}</p>
               </div>
               <div className="flex flex-col items-center">
-                <h1 className="text-7xl lg:text-9xl font-black uppercase" style={{ WebkitTextStroke: '2px white', color: 'transparent', textShadow: `0 0 15px ${imageColors[0] || 'white'}` }}>{songName}</h1>
+                <h1 className="text-5xl lg:text-8xl xl:text-9xl font-black uppercase mb-4" style={{ WebkitTextStroke: '2px white', color: 'transparent', textShadow: `0 0 15px ${imageColors[0] || 'white'}` }}>{songName}</h1>
                 <LyricDisplayer lyric={currentLyric} fontClass={fontClass} key={currentLyricIndex} />
               </div>
               <div className="w-full h-16">
@@ -185,9 +192,9 @@ const VideoPreview: React.FC<VideoPreviewProps> = (props) => {
       default:
         return (
           <>
-            <div className="absolute bottom-4 left-4 text-left z-20 text-white/70">
-                <p className="font-bold text-lg">{songName}</p>
-                <p className="text-sm">by {creatorName}</p>
+            <div className="absolute bottom-6 left-6 text-left z-20 text-white/70">
+                <p className="font-bold text-xl lg:text-2xl">{songName}</p>
+                <p className="text-base lg:text-lg">by {creatorName}</p>
             </div>
             <div className="w-full flex-grow flex flex-col justify-end items-center z-20 p-8 space-y-8">
               <LyricDisplayer lyric={currentLyric} fontClass={fontClass} key={currentLyricIndex}/>
@@ -201,38 +208,38 @@ const VideoPreview: React.FC<VideoPreviewProps> = (props) => {
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center max-h-[85vh]">
-        <div className={`w-full max-w-7xl h-full ${aspectRatioClass} relative flex flex-col justify-between items-center bg-black rounded-lg shadow-2xl shadow-cyan-500/10 overflow-hidden animate-fade-in`}>
+        <div className={`w-full h-full ${aspectRatioClass} relative flex flex-col justify-between items-center bg-black rounded-2xl shadow-2xl shadow-cyan-500/20 overflow-hidden animate-fade-in border border-gray-700/50`}>
             <img src={imageUrl} alt="background" className="absolute top-0 left-0 w-full h-full object-cover opacity-30 z-0" />
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-t from-black/80 via-black/20 to-black/80 z-10"></div>
             
-            <div className="w-full p-4 flex justify-between items-center z-20">
-                <button onClick={onBack} className="flex items-center gap-2 px-3 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+            <div className="w-full p-6 flex justify-between items-center z-20">
+                <button onClick={onBack} className="flex items-center gap-2 px-4 py-3 bg-white/10 backdrop-blur-sm rounded-xl hover:bg-white/20 transition-all duration-300 shadow-lg">
                     <BackIcon className="w-5 h-5" />
-                    <span className="text-sm font-semibold">Back to Editor</span>
+                    <span className="text-sm font-bold">Back to Editor</span>
                 </button>
                  <button 
                     onClick={onExport} 
                     disabled={!isStarted}
-                    className="flex items-center gap-2 px-3 py-2 bg-cyan-500/80 rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 backdrop-blur-sm rounded-xl hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105">
                     <ExportIcon className="w-5 h-5" />
-                    <span className="text-sm font-semibold">Export Video</span>
+                    <span className="text-sm font-bold">Export Video</span>
                 </button>
             </div>
 
             {renderContent()}
 
-            <div className="w-full p-4 flex justify-center items-center gap-6 z-20">
-                 <button onClick={handleAdjustClick} disabled={!duration} className="absolute left-6 p-3 bg-white/10 rounded-full hover:bg-white/20 transition-colors disabled:opacity-50">
+            <div className="w-full p-6 flex justify-center items-center gap-6 z-20">
+                 <button onClick={handleAdjustClick} disabled={!duration} className="absolute left-8 p-4 bg-white/10 backdrop-blur-sm rounded-full hover:bg-white/20 transition-all duration-300 disabled:opacity-50 shadow-lg">
                     <TimelineIcon className="w-6 h-6"/>
                 </button>
-                <button onClick={handlePlayPause} className="p-4 bg-cyan-500/80 rounded-full hover:bg-cyan-500 transition-colors shadow-lg">
+                <button onClick={handlePlayPause} className="p-5 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full hover:from-cyan-400 hover:to-blue-400 transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:scale-110">
                 {isFinished ? <ReplayIcon className="w-8 h-8"/> : isPlaying ? <PauseIcon className="w-8 h-8" /> : <PlayIcon className="w-8 h-8" />}
                 </button>
             </div>
             
             <audio ref={audioRef} src={audioUrl} className="hidden" crossOrigin="anonymous"/>
         </div>
-        <div className="text-center mt-2 text-gray-400 text-sm">
+        <div className="text-center mt-4 text-gray-400 text-sm">
             <p>Click the <TimelineIcon className="w-4 h-4 inline-block align-middle"/> icon to adjust lyric timestamps.</p>
         </div>
     </div>

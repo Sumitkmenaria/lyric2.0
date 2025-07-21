@@ -9,15 +9,15 @@ interface LyricDisplayerProps {
 const LyricDisplayer: React.FC<LyricDisplayerProps> = ({ lyric, fontClass }) => {
   return (
     <div 
-        className="h-24 flex items-center justify-center w-full"
+        className="min-h-24 flex items-center justify-center w-full px-4"
         aria-live="polite" 
         aria-atomic="true"
     >
       {lyric && (
         <p 
-          className={`text-4xl lg:text-5xl font-bold text-white text-center tracking-wide ${fontClass}`}
+          className={`text-3xl lg:text-5xl xl:text-6xl font-bold text-white text-center tracking-wide leading-tight ${fontClass}`}
           style={{
-            textShadow: '0 0 10px rgba(255, 255, 255, 0.3), 0 0 20px rgba(103, 232, 249, 0.5)'
+            textShadow: '0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px rgba(103, 232, 249, 0.6), 0 0 45px rgba(103, 232, 249, 0.3)'
           }}
         >
           {lyric.split(' ').map((word, wordIndex) => (
@@ -26,7 +26,7 @@ const LyricDisplayer: React.FC<LyricDisplayerProps> = ({ lyric, fontClass }) => 
                 <span 
                     key={charIndex} 
                     className="inline-block animate-char-in"
-                    style={{ animationDelay: `${wordIndex * 100 + charIndex * 30}ms`}}
+                    style={{ animationDelay: `${wordIndex * 80 + charIndex * 20}ms`}}
                 >
                   {char}
                 </span>
@@ -45,16 +45,20 @@ style.innerHTML = `
   @keyframes char-in {
     0% {
       opacity: 0;
-      transform: translateY(20px) scale(0.8);
+      transform: translateY(30px) scale(0.7) rotateX(90deg);
+    }
+    50% {
+      opacity: 0.7;
+      transform: translateY(10px) scale(0.9) rotateX(45deg);
     }
     100% {
       opacity: 1;
-      transform: translateY(0) scale(1);
+      transform: translateY(0) scale(1) rotateX(0deg);
     }
   }
   .animate-char-in {
     opacity: 0;
-    animation: char-in 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    animation: char-in 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
   }
 `;
 document.head.appendChild(style);

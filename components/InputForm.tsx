@@ -58,12 +58,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
   const audioInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   
+  // Update state when initialData changes but preserve files
   useEffect(() => {
+    if (!audio) setAudio(initialData.audio);
+    if (!image) setImage(initialData.image);
     setLyrics(initialData.lyrics);
+    setSongName(initialData.songName);
+    setCreatorName(initialData.creatorName);
+    setAspectRatio(initialData.aspectRatio);
+    setHindiFont(initialData.hindiFont);
+    setVisualizationStyle(initialData.visualizationStyle);
     if(initialData.prestructuredLyrics) {
         setPrestructuredLyrics(initialData.prestructuredLyrics);
     }
-  }, [initialData.lyrics, initialData.prestructuredLyrics]);
+  }, [initialData, audio, image]);
 
   const isFormValid = useMemo(() => {
     return audio && image && songName.trim().length > 0 && creatorName.trim().length > 0 && lyrics.trim().length > 0;
@@ -130,15 +138,19 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
   );
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-4xl space-y-8 animate-fade-in">
+    <div className="w-full max-w-5xl space-y-8 animate-fade-in">
       {formError && (
-        <div className="bg-red-900/50 border border-red-700 text-red-300 px-4 py-3 rounded-lg text-center">
+        <div className="bg-red-900/50 border border-red-700 text-red-300 px-6 py-4 rounded-xl text-center shadow-lg">
           {formError}
         </div>
       )}
       
-      <div className="bg-gray-800/50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-cyan-400 mb-4">Step 1: Upload Your Files</h3>
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 p-8 rounded-2xl border border-gray-700/50 shadow-xl">
+          <h3 className="text-xl font-bold text-cyan-400 mb-6 flex items-center gap-3">
+            <div className="w-8 h-8 bg-cyan-400/20 rounded-full flex items-center justify-center text-sm font-bold">1</div>
+            Upload Your Files
+          </h3>
         <div className="flex flex-col md:flex-row gap-8">
           <FileInput
             label="Audio File (MP3, WAV)"
@@ -157,25 +169,28 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
         </div>
       </div>
 
-      <div className="bg-gray-800/50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-purple-400 mb-4">Step 2: Add Details & Style</h3>
+        <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 p-8 rounded-2xl border border-gray-700/50 shadow-xl">
+          <h3 className="text-xl font-bold text-purple-400 mb-6 flex items-center gap-3">
+            <div className="w-8 h-8 bg-purple-400/20 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+            Add Details & Style
+          </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label htmlFor="songName" className="block text-sm font-medium text-gray-300 mb-2">Song Name</label>
-            <input type="text" id="songName" value={songName} onChange={e => setSongName(e.target.value)} placeholder="e.g., 'Mera Safar'" className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required />
+            <input type="text" id="songName" value={songName} onChange={e => setSongName(e.target.value)} placeholder="e.g., 'Mera Safar'" className="w-full p-4 bg-gray-700/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-lg" required />
           </div>
           <div>
             <label htmlFor="creatorName" className="block text-sm font-medium text-gray-300 mb-2">Creator Name</label>
-            <input type="text" id="creatorName" value={creatorName} onChange={e => setCreatorName(e.target.value)} placeholder="e.g., 'Aarav Kumar'" className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required />
+            <input type="text" id="creatorName" value={creatorName} onChange={e => setCreatorName(e.target.value)} placeholder="e.g., 'Aarav Kumar'" className="w-full p-4 bg-gray-700/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-lg" required />
           </div>
         </div>
         <div className="mt-6">
           <label className="block text-sm font-medium text-gray-300 mb-2">Video Format</label>
           <div className="flex gap-4">
             {(['16:9', '9:16'] as const).map(ratio => (
-              <label key={ratio} className={`flex-1 p-3 border-2 rounded-lg cursor-pointer text-center transition-colors ${aspectRatio === ratio ? 'border-cyan-400 bg-cyan-900/50' : 'border-gray-600 hover:border-gray-500'}`}>
+              <label key={ratio} className={`flex-1 p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 ${aspectRatio === ratio ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
                 <input type="radio" name="aspectRatio" value={ratio} checked={aspectRatio === ratio} onChange={() => setAspectRatio(ratio)} className="sr-only" />
-                <span>{ratio === '16:9' ? 'Landscape (16:9)' : 'Portrait (9:16)'}</span>
+                <span className="font-semibold">{ratio === '16:9' ? 'Landscape (16:9)' : 'Portrait (9:16)'}</span>
               </label>
             ))}
           </div>
@@ -184,9 +199,9 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
           <label className="block text-sm font-medium text-gray-300 mb-2">Lyric Font Style</label>
           <div className="grid grid-cols-3 gap-4">
             {fonts.map(font => (
-              <label key={font.key} className={`p-3 border-2 rounded-lg cursor-pointer text-center transition-colors ${hindiFont === font.key ? 'border-cyan-400 bg-cyan-900/50' : 'border-gray-600 hover:border-gray-500'}`}>
+              <label key={font.key} className={`p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 ${hindiFont === font.key ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
                 <input type="radio" name="hindiFont" value={font.key} checked={hindiFont === font.key} onChange={() => setHindiFont(font.key)} className="sr-only" />
-                <span className={`${font.className} text-xl`}>{font.name}</span>
+                <span className={`${font.className} text-xl font-semibold`}>{font.name}</span>
               </label>
             ))}
           </div>
@@ -195,30 +210,33 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
           <label className="block text-sm font-medium text-gray-300 mb-2">Visualization Style</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {visualizationStyles.map(style => (
-              <label key={style.key} className={`p-3 border-2 rounded-lg cursor-pointer text-center transition-colors flex flex-col items-center justify-center gap-2 h-24 ${visualizationStyle === style.key ? 'border-cyan-400 bg-cyan-900/50' : 'border-gray-600 hover:border-gray-500'}`}>
+              <label key={style.key} className={`p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 flex flex-col items-center justify-center gap-2 h-28 ${visualizationStyle === style.key ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
                 <input type="radio" name="visualizationStyle" value={style.key} checked={visualizationStyle === style.key} onChange={() => setVisualizationStyle(style.key)} className="sr-only" />
-                <style.icon className="w-8 h-8"/>
-                <span>{style.name}</span>
+                <style.icon className="w-10 h-10"/>
+                <span className="font-semibold">{style.name}</span>
               </label>
             ))}
           </div>
         </div>
       </div>
 
-      <div className="bg-gray-800/50 p-6 rounded-lg">
-        <h3 className="text-lg font-semibold text-pink-400 mb-4">Step 3: Provide Hindi Lyrics</h3>
+        <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 p-8 rounded-2xl border border-gray-700/50 shadow-xl">
+          <h3 className="text-xl font-bold text-pink-400 mb-6 flex items-center gap-3">
+            <div className="w-8 h-8 bg-pink-400/20 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+            Provide Hindi Lyrics
+          </h3>
         <div className="flex justify-center mb-4">
              <button 
                 type="button" 
                 onClick={handleTranscribe}
                 disabled={!audio || isTranscribing}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 bg-pink-600/80 text-white font-semibold rounded-lg hover:bg-pink-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-pink-600 to-pink-500 text-white font-bold rounded-xl hover:from-pink-500 hover:to-pink-400 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
             >
-                <MusicNoteIcon className="w-5 h-5"/>
+                <MusicNoteIcon className="w-6 h-6"/>
                 {isTranscribing ? 'Transcribing...' : 'Transcribe Lyrics From Audio'}
             </button>
         </div>
-        <p className="text-center text-gray-400 mb-4">Or paste your lyrics below (must be in Devanagari script)</p>
+        <p className="text-center text-gray-400 mb-6 text-lg">Or paste your lyrics below (must be in Devanagari script)</p>
         <textarea
             id="lyrics"
             value={lyrics}
@@ -227,21 +245,22 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
               setPrestructuredLyrics(null);
             }}
             placeholder="यहां अपने गीत के बोल पेस्ट करें, या ऑडियो से ट्रांसक्राइब करें..."
-            className={`w-full h-48 p-4 bg-gray-700 border border-gray-600 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-colors text-lg ${fonts.find(f => f.key === hindiFont)?.className}`}
+            className={`w-full h-56 p-6 bg-gray-700/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-300 text-xl ${fonts.find(f => f.key === hindiFont)?.className}`}
             required
         />
       </div>
       
-      <div className="text-center pt-4">
+        <div className="text-center pt-6">
         <button
           type="submit"
           disabled={!isFormValid}
-          className="px-12 py-4 text-lg font-bold text-white bg-gradient-to-r from-purple-600 to-cyan-500 rounded-full shadow-lg hover:scale-105 transform transition-transform duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          className="px-16 py-5 text-xl font-black text-white bg-gradient-to-r from-purple-600 via-pink-500 to-cyan-500 rounded-full shadow-2xl hover:scale-105 transform transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 hover:shadow-purple-500/25"
         >
           Create Video Preview
         </button>
       </div>
-    </form>
+      </form>
+    </div>
   );
 };
 
