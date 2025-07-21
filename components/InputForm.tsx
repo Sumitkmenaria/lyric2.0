@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useMemo, useEffect } from 'react';
-import { UploadIcon, MusicNoteIcon, ClassicStyleIcon, VinylStyleIcon, WavesStyleIcon, BigTextStyleIcon } from './icons/Icons';
+import { UploadIcon, MusicNoteIcon, TimelineIcon } from './icons/Icons';
 import { AspectRatio, HindiFont, Lyric, VisualizationStyle } from '../types';
 
 interface InputFormProps {
@@ -16,6 +16,7 @@ interface InputFormProps {
     prestructuredLyrics: Lyric[] | null;
   }) => void;
   onTranscribe: (audioFile: File) => void;
+  onAdjustLyrics: (lyrics: Lyric[]) => void;
   initialData: {
     audio: File | null;
     image: File | null;
@@ -35,14 +36,7 @@ const fonts: { key: HindiFont, name: string, className: string }[] = [
     { key: 'Baloo', name: 'Bold', className: 'font-baloo' },
 ];
 
-const visualizationStyles: { key: VisualizationStyle, name: string, icon: React.FC<any> }[] = [
-    { key: 'classic', name: 'Classic', icon: ClassicStyleIcon },
-    { key: 'vinyl', name: 'Vinyl', icon: VinylStyleIcon },
-    { key: 'waves', name: 'Waves', icon: WavesStyleIcon },
-    { key: 'big_text', name: 'Big Text', icon: BigTextStyleIcon },
-]
-
-const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialData }) => {
+const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, onAdjustLyrics, initialData }) => {
   const [audio, setAudio] = useState<File | null>(initialData.audio);
   const [image, setImage] = useState<File | null>(initialData.image);
   const [lyrics, setLyrics] = useState<string>(initialData.lyrics);
@@ -60,18 +54,21 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
   
   // Update state when initialData changes but preserve files
   useEffect(() => {
-    if (!audio) setAudio(initialData.audio);
-    if (!image) setImage(initialData.image);
+    // Only update if we don't have files already
+    if (!audio && initialData.audio) setAudio(initialData.audio);
+    if (!image && initialData.image) setImage(initialData.image);
+    
+    // Always update text fields and settings
     setLyrics(initialData.lyrics);
     setSongName(initialData.songName);
     setCreatorName(initialData.creatorName);
     setAspectRatio(initialData.aspectRatio);
     setHindiFont(initialData.hindiFont);
     setVisualizationStyle(initialData.visualizationStyle);
-    if(initialData.prestructuredLyrics) {
+    if(initialData.prestructuredLyrics && initialData.prestructuredLyrics.length > 0) {
         setPrestructuredLyrics(initialData.prestructuredLyrics);
     }
-  }, [initialData, audio, image]);
+  }, [initialData]);
 
   const isFormValid = useMemo(() => {
     return audio && image && songName.trim().length > 0 && creatorName.trim().length > 0 && lyrics.trim().length > 0;
@@ -92,7 +89,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
     }
     setFormError(null);
     setIsTranscribing(true);
-    setPrestructuredLyrics(null);
     try {
       await onTranscribe(audio);
     } catch (e) {
@@ -100,6 +96,12 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
       setFormError(errorMessage);
     } finally {
       setIsTranscribing(false);
+    }
+  };
+
+  const handleAdjustClick = () => {
+    if (prestructuredLyrics && prestructuredLyrics.length > 0) {
+      onAdjustLyrics(prestructuredLyrics);
     }
   };
 
@@ -184,40 +186,6 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
             <input type="text" id="creatorName" value={creatorName} onChange={e => setCreatorName(e.target.value)} placeholder="e.g., 'Aarav Kumar'" className="w-full p-4 bg-gray-700/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all duration-300 text-lg" required />
           </div>
         </div>
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Video Format</label>
-          <div className="flex gap-4">
-            {(['16:9', '9:16'] as const).map(ratio => (
-              <label key={ratio} className={`flex-1 p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 ${aspectRatio === ratio ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
-                <input type="radio" name="aspectRatio" value={ratio} checked={aspectRatio === ratio} onChange={() => setAspectRatio(ratio)} className="sr-only" />
-                <span className="font-semibold">{ratio === '16:9' ? 'Landscape (16:9)' : 'Portrait (9:16)'}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-         <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Lyric Font Style</label>
-          <div className="grid grid-cols-3 gap-4">
-            {fonts.map(font => (
-              <label key={font.key} className={`p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 ${hindiFont === font.key ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
-                <input type="radio" name="hindiFont" value={font.key} checked={hindiFont === font.key} onChange={() => setHindiFont(font.key)} className="sr-only" />
-                <span className={`${font.className} text-xl font-semibold`}>{font.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-        <div className="mt-6">
-          <label className="block text-sm font-medium text-gray-300 mb-2">Visualization Style</label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {visualizationStyles.map(style => (
-              <label key={style.key} className={`p-4 border-2 rounded-xl cursor-pointer text-center transition-all duration-300 flex flex-col items-center justify-center gap-2 h-28 ${visualizationStyle === style.key ? 'border-cyan-400 bg-cyan-900/50 shadow-lg' : 'border-gray-600 hover:border-gray-500 hover:bg-gray-700/30'}`}>
-                <input type="radio" name="visualizationStyle" value={style.key} checked={visualizationStyle === style.key} onChange={() => setVisualizationStyle(style.key)} className="sr-only" />
-                <style.icon className="w-10 h-10"/>
-                <span className="font-semibold">{style.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
       </div>
 
         <div className="bg-gradient-to-br from-gray-800/60 to-gray-900/60 p-8 rounded-2xl border border-gray-700/50 shadow-xl">
@@ -248,6 +216,20 @@ const InputForm: React.FC<InputFormProps> = ({ onSubmit, onTranscribe, initialDa
             className={`w-full h-56 p-6 bg-gray-700/80 border border-gray-600 rounded-xl focus:ring-2 focus:ring-pink-500 focus:border-pink-500 transition-all duration-300 text-xl ${fonts.find(f => f.key === hindiFont)?.className}`}
             required
         />
+        
+        {/* Lyric Adjustment Button */}
+        {prestructuredLyrics && prestructuredLyrics.length > 0 && (
+          <div className="mt-4 flex justify-center">
+            <button 
+              type="button" 
+              onClick={handleAdjustClick}
+              className="inline-flex items-center justify-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-600 to-cyan-500 text-white font-bold rounded-xl hover:from-cyan-500 hover:to-cyan-400 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
+            >
+              <TimelineIcon className="w-5 h-5"/>
+              Adjust Lyric Timing
+            </button>
+          </div>
+        )}
       </div>
       
         <div className="text-center pt-6">

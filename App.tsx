@@ -43,9 +43,31 @@ const App: React.FC = () => {
       const savedStateJSON = localStorage.getItem('lyricVideoDraft');
       if (savedStateJSON) {
         const savedState = JSON.parse(savedStateJSON);
+        // Create URLs for saved files if they exist
+        let audioUrl = null;
+        let imageUrl = null;
+        
+        if (savedState.audioFile) {
+          try {
+            audioUrl = URL.createObjectURL(savedState.audioFile);
+          } catch (e) {
+            console.warn('Could not restore audio file');
+          }
+        }
+        
+        if (savedState.imageFile) {
+          try {
+            imageUrl = URL.createObjectURL(savedState.imageFile);
+          } catch (e) {
+            console.warn('Could not restore image file');
+          }
+        }
+        
         setAppState(prev => ({
             ...prev,
             ...savedState,
+            audioUrl,
+            imageUrl,
         }));
       }
     } catch (error) {
@@ -58,7 +80,7 @@ const App: React.FC = () => {
     // Save state to localStorage on change, but only serializable data
     if (!isStateRestored) return;
     const debouncedSave = setTimeout(() => {
-        const { audioFile, imageFile, audioUrl, imageUrl, isLoading, isExporting, error, loaderMessage, ...stateToSave } = appState;
+        const { audioUrl, imageUrl, isLoading, isExporting, error, loaderMessage, ...stateToSave } = appState;
         localStorage.setItem('lyricVideoDraft', JSON.stringify(stateToSave));
     }, 500);
 
@@ -141,16 +163,32 @@ const App: React.FC = () => {
     }));
   };
 
+  const handleSettingsChange = (settings: { aspectRatio: AspectRatio; hindiFont: HindiFont; visualizationStyle: VisualizationStyle }) => {
+    setAppState(prev => ({
+      ...prev,
+      ...settings,
+    }));
+  };
+
   const handleExport = async () => {
     if (!appState.audioUrl || !appState.imageUrl) return;
     
-    setAppState(prev => ({ ...prev, isExporting: true, error: null, exportProgress: 0, loaderMessage: "Preparing video export..." }));
+    setAppState(prev => ({ 
+      ...prev, 
+      isExporting: true, 
+      error: null, 
+      exportProgress: 0, 
+      loaderMessage: "Initializing video export...",
+      view: View.PREVIEW // Stay on preview during export
+    }));
     
     const onProgress = (progress: number) => {
         setAppState(prev => ({
             ...prev,
             exportProgress: progress,
-            loaderMessage: progress < 1 ? `Exporting video... ${Math.round(progress * 100)}%` : "Video exported successfully!"
+            loaderMessage: progress < 0.1 ? "Setting up video recording..." :
+                          progress < 0.9 ? `Recording video... ${Math.round(progress * 100)}%` :
+                          progress < 1 ? "Finalizing video..." : "Video exported successfully!"
         }));
     };
 
@@ -199,6 +237,15 @@ const App: React.FC = () => {
     }));
   };
   
+  const handleAdjustLyricsFromInput = (lyrics: Lyric[]) => {
+    setAppState(prev => ({
+      ...prev,
+      view: View.TIMELINE_EDITOR,
+      structuredLyrics: lyrics,
+      audioDuration: 180, // Default duration for timeline editor
+    }));
+  };
+
   const handleSaveTimeline = (updatedLyrics: Lyric[]) => {
       setAppState(prev => ({
           ...prev,
@@ -226,12 +273,13 @@ const App: React.FC = () => {
           </div>
       )}
       <main className="w-full max-w-7xl flex-grow flex flex-col items-center justify-center">
-        {(appState.isLoading || appState.isExporting) && <Loader message={appState.loaderMessage} progress={appState.exportProgress} />}
+        {appState.isLoading && <Loader message={appState.loaderMessage} />}
         
         {isStateRestored && !appState.isLoading && !appState.isExporting && appState.view === View.INPUT && (
           <InputForm
             onSubmit={handleCreateClick}
             onTranscribe={handleLyricsTranscription}
+            onAdjustLyrics={handleAdjustLyricsFromInput}
             initialData={{
               audio: appState.audioFile,
               image: appState.imageFile,
@@ -246,7 +294,13 @@ const App: React.FC = () => {
           />
         )}
         
-        {!appState.isLoading && !appState.isExporting && appState.view === View.PREVIEW && appState.audioUrl && appState.imageUrl && (
+        {!appState.isLoading && appState.view === View.PREVIEW && appState.audioUrl && appState.imageUrl && (
+          <>
+            {appState.isExporting && (
+              <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+                <Loader message={appState.loaderMessage} progress={appState.exportProgress} />
+              </div>
+            )}
           <VideoPreview
             {...appState}
             lyrics={appState.structuredLyrics}
@@ -263,7 +317,9 @@ const App: React.FC = () => {
                 duration={appState.audioDuration}
                 onSave={handleSaveTimeline}
                 onCancel={handleCancelTimeline}
+              onSettingsChange={handleSettingsChange}
             />
+          </>
         )}
       </main>
     </div>

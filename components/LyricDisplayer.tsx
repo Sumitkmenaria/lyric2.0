@@ -1,21 +1,31 @@
 
 import React from 'react';
+import { AspectRatio } from '../types';
 
 interface LyricDisplayerProps {
   lyric: string;
   fontClass: string;
+  aspectRatio: AspectRatio;
 }
 
-const LyricDisplayer: React.FC<LyricDisplayerProps> = ({ lyric, fontClass }) => {
+const LyricDisplayer: React.FC<LyricDisplayerProps> = ({ lyric, fontClass, aspectRatio }) => {
+  const getTextSize = () => {
+    if (aspectRatio === '16:9') {
+      return 'text-2xl lg:text-4xl xl:text-5xl';
+    } else {
+      return 'text-lg lg:text-2xl';
+    }
+  };
+
   return (
     <div 
-        className="min-h-24 flex items-center justify-center w-full px-4"
+        className={`${aspectRatio === '16:9' ? 'min-h-20' : 'min-h-16'} flex items-center justify-center w-full px-4`}
         aria-live="polite" 
         aria-atomic="true"
     >
       {lyric && (
         <p 
-          className={`text-3xl lg:text-5xl xl:text-6xl font-bold text-white text-center tracking-wide leading-tight ${fontClass}`}
+          className={`${getTextSize()} font-bold text-white text-center tracking-wide leading-tight ${fontClass}`}
           style={{
             textShadow: '0 0 15px rgba(255, 255, 255, 0.4), 0 0 30px rgba(103, 232, 249, 0.6), 0 0 45px rgba(103, 232, 249, 0.3)'
           }}

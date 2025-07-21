@@ -150,6 +150,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
         throw new Error('Audio processing is not supported in this browser');
     }
     
+    onProgress(0.05);
+    
     const [image, audio, vinylImage] = await Promise.all([
         loadAsset(Object.assign(new Image(), { src: imageUrl, crossOrigin: 'anonymous' })),
         loadAsset(Object.assign(new Audio(), { src: audioUrl, crossOrigin: 'anonymous' })),
@@ -157,6 +159,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
     ]).catch(e => {
         throw new Error(`Failed to load media assets: ${e.message}`);
     });
+    
+    onProgress(0.1);
     
     const fontClassName = getFontClass(hindiFont);
     const fontString = FONT_MAP[fontClassName].replace(/\d+px/, `${FONT_SIZE}px`);
@@ -174,6 +178,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
         console.warn('Some fonts failed to load, using fallbacks');
     }
 
+    onProgress(0.15);
+
     let destination: MediaStreamAudioDestinationNode;
     let source: MediaElementAudioSourceNode;
     let analyser: AnalyserNode;
@@ -183,6 +189,7 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
         source = audioContext.createMediaElementSource(audio);
         analyser = audioContext.createAnalyser();
         analyser.fftSize = 256;
+        analyser.smoothingTimeConstant = 0.8;
         
         source.connect(analyser);
         source.connect(destination);
@@ -214,6 +221,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
         }
     }
     
+    onProgress(0.2);
+    
     const recorder = new MediaRecorder(combinedStream, { mimeType });
     const chunks: Blob[] = [];
     
@@ -237,13 +246,18 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
 
     let animationFrameId: number;
     let lastProgress = -1;
+    let startTime = 0;
+    let isRecordingStarted = false;
 
     const renderFrame = () => {
-        if (audio.ended) return;
+        if (audio.ended) {
+            cancelAnimationFrame(animationFrameId);
+            return;
+        }
         
         const progress = audio.currentTime / audio.duration;
         if(Math.floor(progress * 100) !== Math.floor(lastProgress * 100)) {
-            onProgress(progress);
+            onProgress(0.2 + (progress * 0.8)); // Scale progress from 0.2 to 1.0
             lastProgress = progress;
         }
 
@@ -254,6 +268,8 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
 
         const currentTime = audio.currentTime;
         let currentLyric = '';
+        
+        // Find current lyric with better timing
         for (let i = lyrics.length - 1; i >= 0; i--) {
             if (currentTime >= lyrics[i].startTime) {
                 currentLyric = lyrics[i].text;
@@ -301,6 +317,9 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
                 ctx.fillText(songName, VIDEO_WIDTH / 2, containerY + containerHeight + 80);
                 ctx.font = `400 ${FONT_SIZE * 0.8}px Inter`;
                 ctx.fillText(`by ${creatorName}`, VIDEO_WIDTH / 2, containerY + containerHeight + 140);
+                
+                // Draw lyrics at bottom
+                drawLyric(ctx, currentLyric, fontString, VIDEO_WIDTH/2, VIDEO_HEIGHT * 0.9);
                 break;
             }
             case 'waves': {
@@ -386,7 +405,9 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
 
     audio.onended = () => {
         try {
+            setTimeout(() => {
             recorder.stop();
+            }, 500); // Small delay to ensure final frames are captured
         } catch (e) {
             console.error('Error stopping recorder:', e);
         }
@@ -400,8 +421,9 @@ export const exportVideo = async (options: ExportParams, onProgress: (progress: 
     };
     
     try {
+        recorder.start(1000); // Record in 1-second chunks for better stability
         await audio.play();
-        recorder.start();
+        isRecordingStarted = true;
         renderFrame();
     } catch (e) {
         cleanup();
