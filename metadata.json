@@ -1,0 +1,6 @@
+{
+  "name": "AI Lyric Video Generator",
+  "description": "Create a stunning visual music video preview by combining your audio, an image, and Hindi lyrics. This app uses AI to structure your lyrics and provides a real-time audio visualizer to bring your song to life.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
