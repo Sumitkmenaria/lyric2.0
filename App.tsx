@@ -153,7 +153,7 @@ const App: React.FC = () => {
           localStorage.removeItem('lyricVideoDraft');
           setAppState(initialAppState);
       }
-  }
+  };
 
   const handleBackToInput = () => {
     setAppState(prev => ({
@@ -257,7 +257,7 @@ const App: React.FC = () => {
 
   const handleCancelTimeline = () => {
       setAppState(prev => ({ ...prev, view: View.PREVIEW }));
-  }
+  };
   
   const handleClearError = () => {
       setAppState(prev => ({ ...prev, error: null }));
@@ -308,6 +308,7 @@ const App: React.FC = () => {
             onExport={handleExport}
             onAdjust={handleAdjustLyrics}
           />
+          </>
         )}
 
         {!appState.isLoading && !appState.isExporting && appState.view === View.TIMELINE_EDITOR && appState.audioUrl && (
@@ -319,7 +320,6 @@ const App: React.FC = () => {
                 onCancel={handleCancelTimeline}
               onSettingsChange={handleSettingsChange}
             />
-          </>
         )}
       </main>
     </div>
