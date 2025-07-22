@@ -4,7 +4,7 @@ import InputForm from './components/InputForm';
 import VideoPreview from './components/VideoPreview';
 import TimelineEditor from './components/TimelineEditor';
 import Loader from './components/Loader';
-import { transcribeAudio } from './services/geminiService';
+import { extractLyricsFromAudio } from './services/geminiService';
 import { exportVideo } from './services/videoExporter';
 import { View, AppState, VideoSettings } from './types';
 
@@ -102,7 +102,7 @@ function App() {
     setAppState(prev => ({ ...prev, isLoading: true }));
 
     try {
-      const transcribedLyrics = await transcribeAudio(appState.audioFile);
+      const transcribedLyrics = await extractLyricsFromAudio(appState.audioFile);
       setAppState(prev => ({
         ...prev,
         lyrics: transcribedLyrics,
