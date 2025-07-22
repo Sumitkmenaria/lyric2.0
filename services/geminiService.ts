@@ -97,6 +97,16 @@ export const structureLyrics = async (rawLyrics: string): Promise<Lyric[]> => {
 
 export const extractLyricsFromAudio = async (audioFile: File): Promise<Lyric[]> => {
   try {
+    // Validate file type
+    if (!audioFile.type.startsWith('audio/')) {
+      throw new Error('Please upload a valid audio file (MP3, WAV, or OGG).');
+    }
+    
+    // Check file size (limit to 20MB for better processing)
+    if (audioFile.size > 20 * 1024 * 1024) {
+      throw new Error('Audio file is too large. Please use a file smaller than 20MB.');
+    }
+
     const audioPart = await fileToGenerativePart(audioFile);
 
     const prompt = `
@@ -111,6 +121,8 @@ export const extractLyricsFromAudio = async (audioFile: File): Promise<Lyric[]> 
       - The "text" MUST be in the Devanagari script.
       - Do not include any annotations like '[Chorus]', '(Verse 1)', etc. in the final 'text' value.
       - Break down lyrics into lines that are short and easy to read on screen.
+      - If the audio contains instrumental sections, skip them and only transcribe vocal parts.
+      - Ensure each lyric line is meaningful and complete.
       - The final output MUST be only the JSON array of objects.
     `;
 
@@ -125,22 +137,31 @@ export const extractLyricsFromAudio = async (audioFile: File): Promise<Lyric[]> 
 
     const jsonText = response.text.trim();
      if (!jsonText) {
-        throw new Error("AI returned an empty response. The audio might be silent or unsupported.");
+        throw new Error("Could not transcribe the audio. The file might be silent, instrumental only, or in an unsupported format.");
     }
 
-    const parsedLyrics = JSON.parse(jsonText);
+    let parsedLyrics;
+    try {
+      parsedLyrics = JSON.parse(jsonText);
+    } catch (parseError) {
+      throw new Error("Failed to parse the transcription results. Please try again with a clearer audio file.");
+    }
 
     if (!Array.isArray(parsedLyrics) || (parsedLyrics.length > 0 && !parsedLyrics.every(item => typeof item === 'object' && 'text' in item && 'startTime' in item))) {
-        throw new Error("AI returned data in an unexpected format.");
+        throw new Error("Transcription failed to produce valid results. Please ensure the audio contains clear Hindi vocals.");
+    }
+    
+    if (parsedLyrics.length === 0) {
+        throw new Error("No lyrics were detected in the audio. Please ensure the file contains Hindi vocals.");
     }
 
     return parsedLyrics.sort((a, b) => a.startTime - b.startTime);
 
   } catch (error) {
     console.error("Error extracting lyrics with Gemini API:", error);
-     if (error instanceof Error && error.message.includes("empty response")) {
+     if (error instanceof Error) {
         throw error;
     }
-    throw new Error("The AI failed to transcribe the audio. Please check the audio file or try again.");
+    throw new Error("Transcription service is currently unavailable. Please try again later.");
   }
 };
